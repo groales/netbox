@@ -67,20 +67,19 @@ Permite mantener la configuración actualizada automáticamente desde Git.
    - **Repository reference**: `refs/heads/main`
    - **Compose path**: `docker-compose.yml`
    - **GitOps updates**: Activado (opcional - auto-actualización)
-5. En **Environment variables**, añade:
+5. **Solo para Traefik**: En **Additional paths**, añade:
+   - `docker-compose.override.traefik.yml.example`
+6. En **Environment variables**, añade:
 
 ```env
 DB_PASSWORD=tu_password_generado_1
 REDIS_PASSWORD=tu_password_generado_2
 SUPERUSER_EMAIL=admin@example.com
 SUPERUSER_PASSWORD=tu_password_generado_3
-ALLOWED_HOST=*
-DB_NAME=netbox
-DB_USER=netbox
 ```
 
-6. **Solo para Traefik**: Añade también `DOMAIN_HOST=netbox.example.com`
-7. Click en **Deploy the stack**
+7. **Solo para Traefik**: Añade también `DOMAIN_HOST=netbox.example.com`
+8. Click en **Deploy the stack**
 
 ### Opción B: Web editor
 
