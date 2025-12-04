@@ -1,0 +1,22 @@
+services:
+  netbox:
+    labels:
+      # Habilitar Traefik
+      - traefik.enable=true
+      
+      # Router HTTP (redirige a HTTPS)
+      - traefik.http.routers.netbox-http.rule=Host(`${DOMAIN_HOST}`)
+      - traefik.http.routers.netbox-http.entrypoints=web
+      - traefik.http.routers.netbox-http.middlewares=redirect-to-https
+      
+      # Router HTTPS
+      - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
+      - traefik.http.routers.netbox.entrypoints=websecure
+      - traefik.http.routers.netbox.tls=true
+      - traefik.http.routers.netbox.tls.certresolver=letsencrypt
+      - traefik.http.routers.netbox.service=netbox-svc
+      - traefik.http.services.netbox-svc.loadbalancer.server.port=8000
+      
+      # Redirect middleware
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true

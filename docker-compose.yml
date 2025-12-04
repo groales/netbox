@@ -1,0 +1,65 @@
+services:
+  netbox:
+    container_name: netbox
+    image: lscr.io/linuxserver/netbox:latest
+    restart: unless-stopped
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Madrid
+      SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
+      SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
+      ALLOWED_HOST: ${ALLOWED_HOST}
+      DB_NAME: ${DB_NAME:-netbox}
+      DB_USER: ${DB_USER:-netbox}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: netbox-db
+      DB_PORT: 5432
+      REDIS_HOST: netbox-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - netbox_config:/config
+    networks:
+      - proxy
+      - netbox-internal
+    depends_on:
+      - netbox-db
+      - netbox-redis
+
+  netbox-db:
+    container_name: netbox-db
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-netbox}
+      POSTGRES_USER: ${DB_USER:-netbox}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - netbox_db:/var/lib/postgresql
+    networks:
+      - netbox-internal
+
+  netbox-redis:
+    container_name: netbox-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - netbox_redis:/data
+    networks:
+      - netbox-internal
+
+volumes:
+  netbox_config:
+    name: netbox_config
+  netbox_db:
+    name: netbox_db
+  netbox_redis:
+    name: netbox_redis
+
+networks:
+  proxy:
+    external: true
+  netbox-internal:
+    name: netbox-internal

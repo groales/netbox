@@ -1,0 +1,17 @@
+# Docker
+.env
+docker-compose.override.yml
+
+# Datos y backups
+data/
+backups/
+*.sql
+*.dump
+
+# Logs
+logs/
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
