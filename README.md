@@ -234,10 +234,12 @@ networks:
 ### Primer Acceso
 
 1. Accede a NetBox usando tu dominio configurado
-2. Haz login con las credenciales del superusuario:
-   - **Email**: El configurado en `SUPERUSER_EMAIL`
+2. Haz login con:
+   - **Username**: `admin`
    - **Password**: El configurado en `SUPERUSER_PASSWORD`
 3. NetBox creará automáticamente la base de datos en el primer inicio (puede tardar 1-2 minutos)
+
+> ℹ️ **Nota**: El username es siempre `admin`, el email (`SUPERUSER_EMAIL`) se usa solo para notificaciones.
 
 ### Panel de Administración
 
@@ -540,11 +542,11 @@ docker exec netbox python /app/netbox/manage.py reindex --lazy
 ### Requeridas
 
 | Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
+|----------|-------------|---------||
 | `DB_PASSWORD` | Contraseña de PostgreSQL | `generada_con_openssl` |
 | `REDIS_PASSWORD` | Contraseña de Redis | `generada_con_openssl` |
-| `SUPERUSER_EMAIL` | Email del admin | `admin@example.com` |
-| `SUPERUSER_PASSWORD` | Contraseña del admin | `generada_con_openssl` |
+| `SUPERUSER_EMAIL` | Email del admin (para notificaciones) | `admin@example.com` |
+| `SUPERUSER_PASSWORD` | Contraseña del usuario `admin` | `generada_con_openssl` |
 
 ### Opcionales
 
