@@ -9,7 +9,7 @@ services:
       TZ: Europe/Madrid
       SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
       SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
-      ALLOWED_HOST: ${ALLOWED_HOST}
+      ALLOWED_HOST: ${ALLOWED_HOST:-*}
       DB_NAME: ${DB_NAME:-netbox}
       DB_USER: ${DB_USER:-netbox}
       DB_PASSWORD: ${DB_PASSWORD}
