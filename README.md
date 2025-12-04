@@ -159,10 +159,10 @@ services:
       - netbox-redis
     labels:
       - traefik.enable=true
-      - traefik.http.routers.netbox-http.rule=Host(`netbox.tudominio.com`)
+      - traefik.http.routers.netbox-http.rule=Host(`${DOMAIN_HOST}`)
       - traefik.http.routers.netbox-http.entrypoints=web
       - traefik.http.routers.netbox-http.middlewares=redirect-to-https
-      - traefik.http.routers.netbox.rule=Host(`netbox.tudominio.com`)
+      - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
       - traefik.http.routers.netbox.entrypoints=websecure
       - traefik.http.routers.netbox.tls=true
       - traefik.http.routers.netbox.tls.certresolver=letsencrypt
