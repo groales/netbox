@@ -105,25 +105,18 @@ Para personalización completa del compose.
 
 **Pasos**:
 
-1. Copia el archivo de ejemplo:
-   ```bash
-   cp docker-compose.override.traefik.yml.example docker-compose.override.traefik.yml
-   ```
+Si desplegaste con **Opción A (Git Repository)**, ya configuraste todo en el paso 5 y 7. Simplemente accede a `https://netbox.tudominio.com`
 
-2. Edita `docker-compose.override.traefik.yml` y cambia `${DOMAIN_HOST}` si es necesario
+Si usas otra forma de despliegue:
 
-3. En Portainer, en las **Environment variables** del stack, añade:
+1. Asegúrate de tener el archivo `docker-compose.override.traefik.yml.example` como `docker-compose.override.yml`
+
+2. En las **Environment variables**, añade:
    ```env
    DOMAIN_HOST=netbox.tudominio.com
    ```
 
-4. Sube el archivo `docker-compose.override.traefik.yml` como **Additional file**:
-   - Path: `docker-compose.override.traefik.yml`
-   - Contenido: pega el contenido del archivo
-
-5. Despliega el stack
-
-6. Accede a `https://netbox.tudominio.com`
+3. Despliega el stack y accede a `https://netbox.tudominio.com`
 
 **Ejemplo de compose completo con Traefik**:
 
@@ -139,7 +132,7 @@ services:
       TZ: Europe/Madrid
       SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
       SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
-      ALLOWED_HOST: ${ALLOWED_HOST}
+      ALLOWED_HOST: ${ALLOWED_HOST:-*}
       DB_NAME: ${DB_NAME:-netbox}
       DB_USER: ${DB_USER:-netbox}
       DB_PASSWORD: ${DB_PASSWORD}
