@@ -23,6 +23,14 @@ IPAM (IP Address Management) y DCIM (Data Center Infrastructure Management) de c
 
 ⚠️ **IMPORTANTE**: NetBox requiere PostgreSQL 18 y Redis. Este compose incluye ambos contenedores.
 
+### Sobre Redis
+
+Redis se utiliza como **caché de sesiones y tareas**:
+- ✅ **tmpfs (RAM)**: Más rápido, no usa disco
+- 🔒 **Contraseña requerida**: Seguridad defense-in-depth
+- ⚡ **No persistente**: El caché se regenera automáticamente al reiniciar
+- 💾 **No requiere backup**: Solo almacena datos temporales
+
 ## Generar Contraseñas
 
 **Antes de cualquier despliegue**, genera contraseñas seguras:
@@ -181,8 +189,8 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - netbox_redis:/data
+    tmpfs:
+      - /data:rw,noexec,nosuid,size=256m
     networks:
       - netbox-internal
 
@@ -191,8 +199,6 @@ volumes:
     name: netbox_config
   netbox_db:
     name: netbox_db
-  netbox_redis:
-    name: netbox_redis
 
 networks:
   proxy:
@@ -346,9 +352,7 @@ docker exec netbox-db pg_dump -U netbox netbox > netbox-backup-$(date +%Y%m%d).s
 # Backup de configuración
 docker run --rm -v netbox_config:/backup -v $(pwd):/target alpine tar czf /target/netbox-config-$(date +%Y%m%d).tar.gz -C /backup .
 
-# Backup de Redis (opcional - solo caché)
-docker exec netbox-redis redis-cli --pass "TU_REDIS_PASSWORD" SAVE
-docker run --rm -v netbox_redis:/backup -v $(pwd):/target alpine tar czf /target/netbox-redis-$(date +%Y%m%d).tar.gz -C /backup .
+# Redis usa tmpfs (no requiere backup - solo caché)
 ```
 
 ### Backup Automático
