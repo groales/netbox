@@ -94,6 +94,90 @@ Para personalización completa del compose.
 
 ---
 
+## Despliegue con Docker CLI
+
+Si prefieres trabajar desde la línea de comandos:
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://git.ictiberia.com/groales/netbox.git
+cd netbox
+```
+
+### 2. Generar contraseñas seguras
+
+Necesitas generar **4 contraseñas** distintas:
+
+```bash
+# PostgreSQL
+openssl rand -base64 32
+
+# Redis
+openssl rand -base64 32
+
+# Superuser Email
+openssl rand -base64 32
+
+# Superuser Password
+openssl rand -base64 32
+```
+
+### 3. Elegir modo de despliegue
+
+#### Opción A: Traefik (recomendado para producción)
+
+```bash
+cp docker-compose.override.traefik.yml.example docker-compose.override.yml
+cp .env.example .env
+nano .env  # Editar: pegar las 4 contraseñas generadas, configurar DOMAIN_HOST
+```
+
+#### Opción B: Nginx Proxy Manager
+
+```bash
+cp .env.example .env
+nano .env  # Editar: pegar las 4 contraseñas generadas
+```
+
+### 4. Iniciar el servicio
+
+```bash
+docker compose up -d
+```
+
+La inicialización puede tardar **60-90 segundos** (PostgreSQL + Redis + NetBox migrations).
+
+### 5. Verificar el despliegue
+
+```bash
+# Ver logs en tiempo real
+docker compose logs -f netbox
+
+# Verificar contenedores activos
+docker compose ps
+
+# Comprobar base de datos
+docker compose exec netbox-db psql -U netbox -d netbox -c '\dt'
+```
+
+**Crear directorio de medios** (necesario para subir imágenes):
+
+```bash
+docker compose exec netbox mkdir -p /config/media
+docker compose exec netbox chown 1000:1000 /config/media
+```
+
+**Acceso**:
+- Traefik: `https://<DOMAIN_HOST>` (ejemplo: `https://netbox.example.com`)
+- NPM: Configurar en NPM apuntando a `netbox` puerto `8000`
+
+**Credenciales iniciales**:
+- Usuario: `admin` (⚠️ **NO** es el email, es el nombre de usuario)
+- Contraseña: La configurada en `SUPERUSER_PASSWORD`
+
+---
+
 ## Modos de Despliegue
 
 ### Traefik (Proxy Inverso con SSL automático)
