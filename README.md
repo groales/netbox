@@ -240,7 +240,6 @@ services:
       - traefik.http.routers.netbox-http.middlewares=redirect-to-https
       - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
       - traefik.http.routers.netbox.entrypoints=websecure
-      - traefik.http.routers.netbox.tls=true
       - traefik.http.routers.netbox.tls.certresolver=letsencrypt
       - traefik.http.routers.netbox.service=netbox-svc
       - traefik.http.services.netbox-svc.loadbalancer.server.port=8000
