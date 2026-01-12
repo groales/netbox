@@ -16,7 +16,7 @@ IPAM (IP Address Management) y DCIM (Data Center Infrastructure Management) de c
 ## Requisitos Previos
 
 - Docker Engine instalado
-- Portainer configurado (recomendado)
+- Docker Compose instalado
 - **Para Traefik o NPM**: Red Docker `proxy` creada
 - **Dominio configurado**: Para acceso HTTPS
 - **Contraseñas generadas**: DB_PASSWORD, REDIS_PASSWORD y SUPERUSER_PASSWORD
@@ -30,6 +30,18 @@ Redis se utiliza como **caché de sesiones y tareas**:
 - 🔒 **Contraseña requerida**: Seguridad defense-in-depth
 - ⚡ **No persistente**: El caché se regenera automáticamente al reiniciar
 - 💾 **No requiere backup**: Solo almacena datos temporales
+
+## Archivos de este Repositorio
+
+Este repositorio contiene archivos de ejemplo:
+- `docker-compose.yml` - Configuración base de los contenedores
+- `.env.example` - Plantilla de variables de entorno
+- `docker-compose.override.traefik.yml.example` - Labels para Traefik
+- `README.md` - Esta documentación
+
+> 💡 **Tip**: Puedes copiar estos archivos manualmente o clonar el repositorio.
+
+---
 
 ## Generar Contraseñas
 
@@ -53,102 +65,173 @@ Guarda los resultados, los necesitarás en el archivo `.env`.
 
 ---
 
-## Despliegue con Portainer
+## Despliegue con Docker Compose
 
-### Opción A: Git Repository (Recomendada)
-
-Permite mantener la configuración actualizada automáticamente desde Git.
-
-1. En Portainer, ve a **Stacks** → **Add stack**
-2. Nombra el stack: `netbox`
-3. Selecciona **Git Repository**
-4. Configura:
-   - **Repository URL**: `https://git.ictiberia.com/groales/netbox`
-   - **Repository reference**: `refs/heads/main`
-   - **Compose path**: `docker-compose.yml`
-   - **GitOps updates**: Activado (opcional - auto-actualización)
-5. **Solo para Traefik**: En **Additional paths**, añade:
-   - `docker-compose.override.traefik.yml.example`
-6. En **Environment variables**, añade:
-
-```env
-DB_PASSWORD=tu_password_generado_1
-REDIS_PASSWORD=tu_password_generado_2
-SUPERUSER_EMAIL=admin@example.com
-SUPERUSER_PASSWORD=tu_password_generado_3
-```
-
-7. **Solo para Traefik**: Añade también `DOMAIN_HOST=netbox.example.com`
-8. Click en **Deploy the stack**
-
-### Opción B: Web editor
-
-Para personalización completa del compose.
-
-1. En Portainer, ve a **Stacks** → **Add stack**
-2. Nombra el stack: `netbox`
-3. Selecciona **Web editor**
-4. Pega el contenido de `docker-compose.yml`
-5. En **Environment variables**, añade las mismas variables que la Opción A
-6. Click en **Deploy the stack**
-
----
-
-## Despliegue con Docker CLI
-
-Si prefieres trabajar desde la línea de comandos:
-
-### 1. Clonar el repositorio
+### 1. Crear Directorio y Archivos
 
 ```bash
-git clone https://git.ictiberia.com/groales/netbox.git
+# Crear directorio
+mkdir netbox
 cd netbox
 ```
 
-### 2. Generar contraseñas seguras
+### 2. Crear docker-compose.yml
 
-Necesitas generar **4 contraseñas** distintas:
+Crea el archivo `docker-compose.yml`:
 
-```bash
-# PostgreSQL
-openssl rand -base64 32
+```yaml
+services:
+  netbox:
+    container_name: netbox
+    image: lscr.io/linuxserver/netbox:latest
+    restart: unless-stopped
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Madrid
+      SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
+      SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
+      ALLOWED_HOST: ${ALLOWED_HOST:-*}
+      DB_NAME: ${DB_NAME:-netbox}
+      DB_USER: ${DB_USER:-netbox}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: netbox-db
+      DB_PORT: 5432
+      REDIS_HOST: netbox-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - netbox_config:/config
+    networks:
+      - proxy
+      - netbox-internal
+    depends_on:
+      - netbox-db
+      - netbox-redis
+
+  netbox-db:
+    container_name: netbox-db
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-netbox}
+      POSTGRES_USER: ${DB_USER:-netbox}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - netbox_db:/var/lib/postgresql
+    networks:
+      - netbox-internal
+
+  netbox-redis:
+    container_name: netbox-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    tmpfs:
+      - /data:rw,noexec,nosuid,size=256m
+    networks:
+      - netbox-internal
+
+volumes:
+  netbox_config:
+    name: netbox_config
+  netbox_db:
+    name: netbox_db
+
+networks:
+  proxy:
+    external: true
+  netbox-internal:
+    name: netbox-internal
+```
+
+### 3. Configurar Variables de Entorno
+
+Crea el archivo `.env`:
+
+```env
+# Base de datos
+DB_NAME=netbox
+DB_USER=netbox
+DB_PASSWORD=tu_password_generado_1
 
 # Redis
-openssl rand -base64 32
+REDIS_PASSWORD=tu_password_generado_2
 
-# Superuser Email
-openssl rand -base64 32
+# Superusuario NetBox
+SUPERUSER_EMAIL=admin@example.com
+SUPERUSER_PASSWORD=tu_password_generado_3
 
-# Superuser Password
-openssl rand -base64 32
+# Hosts permitidos (opcional)
+ALLOWED_HOST=*
 ```
 
-### 3. Elegir modo de despliegue
+### 4. (Opcional) Configurar Traefik
 
-#### Opción A: Traefik (recomendado para producción)
+Si usas Traefik, crea `docker-compose.override.yml`:
 
-```bash
-cp docker-compose.override.traefik.yml.example docker-compose.override.yml
-cp .env.example .env
-nano .env  # Editar: pegar las 4 contraseñas generadas, configurar DOMAIN_HOST
+```yaml
+services:
+  netbox:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.netbox-http.rule=Host(`${DOMAIN_HOST}`)
+      - traefik.http.routers.netbox-http.entrypoints=web
+      - traefik.http.routers.netbox-http.middlewares=redirect-to-https
+      - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
+      - traefik.http.routers.netbox.entrypoints=websecure
+      - traefik.http.routers.netbox.tls.certresolver=letsencrypt
+      - traefik.http.services.netbox.loadbalancer.server.port=8000
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
 ```
 
-#### Opción B: Nginx Proxy Manager
-
-```bash
-cp .env.example .env
-nano .env  # Editar: pegar las 4 contraseñas generadas
+Y añade en `.env`:
+```env
+DOMAIN_HOST=netbox.dominio.com
 ```
 
-### 4. Iniciar el servicio
+### 5. Desplegar
 
 ```bash
+# Crear red proxy si no existe
+docker network create proxy
+
+# Iniciar servicios
 docker compose up -d
+
+# Ver logs
+docker compose logs -f netbox
 ```
 
 La inicialización puede tardar **60-90 segundos** (PostgreSQL + Redis + NetBox migrations).
 
-### 5. Verificar el despliegue
+---
+
+## Método Alternativo: Clonar desde Git
+
+Si prefieres usar Git para mantener la configuración actualizada:
+
+```bash
+# Clonar repositorio
+git clone https://git.ictiberia.com/groales/netbox.git
+cd netbox
+
+# Copiar y editar variables
+cp .env.example .env
+nano .env
+
+# Para Traefik
+cp docker-compose.override.traefik.yml.example docker-compose.override.yml
+
+# Desplegar
+docker network create proxy
+docker compose up -d
+```
+
+---
+
+## Verificar el Despliegue
 
 ```bash
 # Ver logs en tiempo real
@@ -168,9 +251,12 @@ docker compose exec netbox mkdir -p /config/media
 docker compose exec netbox chown 1000:1000 /config/media
 ```
 
-**Acceso**:
-- Traefik: `https://<DOMAIN_HOST>` (ejemplo: `https://netbox.example.com`)
-- NPM: Configurar en NPM apuntando a `netbox` puerto `8000`
+**Acceso Inicial**:
+
+Una vez desplegado, accede a NetBox:
+- Traefik: `https://netbox.dominio.com`
+- NPM: Configura el proxy host en NPM apuntando a `netbox` puerto `8000`
+- Standalone: `http://IP_SERVIDOR:8000`
 
 **Credenciales iniciales**:
 - Usuario: `admin` (⚠️ **NO** es el email, es el nombre de usuario)
@@ -178,31 +264,34 @@ docker compose exec netbox chown 1000:1000 /config/media
 
 ---
 
-## Modos de Despliegue
+## Comandos Útiles
 
-### Traefik (Proxy Inverso con SSL automático)
+### Ver Logs
+```bash
+docker compose logs -f netbox
+```
 
-**Requisitos**:
-- Stack de Traefik desplegado
-- Red `proxy` creada
-- DNS apuntando al servidor
+### Reiniciar Servicio
+```bash
+docker compose restart netbox
+```
 
-**Pasos**:
+### Actualizar Contenedor
+```bash
+docker compose pull
+docker compose up -d
+```
 
-Si desplegaste con **Opción A (Git Repository)**, ya configuraste todo en el paso 5 y 7. Simplemente accede a `https://netbox.tudominio.com`
+### Backup de Base de Datos
+```bash
+docker compose exec netbox-db pg_dump -U netbox netbox > netbox_backup.sql
+```
 
-Si usas otra forma de despliegue:
+---
 
-1. Asegúrate de tener el archivo `docker-compose.override.traefik.yml.example` como `docker-compose.override.yml`
+## Ejemplos de Compose Completos
 
-2. En las **Environment variables**, añade:
-   ```env
-   DOMAIN_HOST=netbox.tudominio.com
-   ```
-
-3. Despliega el stack y accede a `https://netbox.tudominio.com`
-
-**Ejemplo de compose completo con Traefik**:
+### Con Traefik
 
 ```yaml
 services:
