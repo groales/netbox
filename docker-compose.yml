@@ -22,7 +22,7 @@ services:
       - netbox_config:/config
     networks:
       - proxy
-      - netbox-internal
+      - default
     depends_on:
       - netbox-db
       - netbox-redis
@@ -37,8 +37,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - netbox_db:/var/lib/postgresql
-    networks:
-      - netbox-internal
 
   netbox-redis:
     container_name: netbox-redis
@@ -47,8 +45,6 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD}
     tmpfs:
       - /data:rw,noexec,nosuid,size=256m
-    networks:
-      - netbox-internal
 
 volumes:
   netbox_config:
@@ -57,7 +53,6 @@ volumes:
     name: netbox_db
 
 networks:
+  default:
   proxy:
     external: true
-  netbox-internal:
-    name: netbox-internal
