@@ -1,9 +1,0 @@
-services:
-  netbox:
-    labels:
-      # Habilitar Traefik
-      - traefik.enable=true
-      - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
-      - traefik.http.routers.netbox.entrypoints=websecure
-      - traefik.http.routers.netbox.tls.certresolver=letsencrypt
-      - traefik.http.services.netbox.loadbalancer.server.port=8000

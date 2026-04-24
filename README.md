@@ -17,7 +17,6 @@ IPAM (IP Address Management) y DCIM (Data Center Infrastructure Management) de c
 
 - Docker Engine instalado
 - Docker Compose instalado
-- **Para Traefik o NPM**: Red Docker `proxy` creada
 - **Dominio configurado**: Para acceso HTTPS
 - **Contraseñas generadas**: DB_PASSWORD, REDIS_PASSWORD y SUPERUSER_PASSWORD
 
@@ -36,7 +35,6 @@ Redis se utiliza como **caché de sesiones y tareas**:
 Este repositorio contiene archivos de ejemplo:
 - `compose.yaml` - Configuración base de los contenedores
 - `.env.example` - Plantilla de variables de entorno
-- `docker-compose.override.traefik.yml.example` - Labels para Traefik
 - `README.md` - Esta documentación
 
 > 💡 **Tip**: Puedes copiar estos archivos manualmente o clonar el repositorio.
@@ -161,24 +159,12 @@ SUPERUSER_PASSWORD=tu_password_generado_3
 ALLOWED_HOST=*
 ```
 
-### 4. (Opcional) Configurar Traefik
 
-Si usas Traefik, crea `compose.override.yaml`:
 
 ```yaml
 services:
   netbox:
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.netbox-http.rule=Host(`${DOMAIN_HOST}`)
-      - traefik.http.routers.netbox-http.entrypoints=web
-      - traefik.http.routers.netbox-http.middlewares=redirect-to-https
-      - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
-      - traefik.http.routers.netbox.entrypoints=websecure
-      - traefik.http.routers.netbox.tls.certresolver=letsencrypt
-      - traefik.http.services.netbox.loadbalancer.server.port=8000
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
 ```
 
 Y añade en `.env`:
@@ -216,8 +202,6 @@ cd netbox
 cp .env.example .env
 nano .env
 
-# Para Traefik
-cp docker-compose.override.traefik.yml.example compose.override.yaml
 
 # Desplegar
 docker network create proxy
@@ -249,8 +233,6 @@ docker compose exec netbox chown 1000:1000 /config/media
 **Acceso Inicial**:
 
 Una vez desplegado, accede a NetBox:
-- Traefik: `https://netbox.dominio.com`
-- NPM: Configura el proxy host en NPM apuntando a `netbox` puerto `8000`
 - Standalone: `http://IP_SERVIDOR:8000`
 
 **Credenciales iniciales**:
@@ -286,7 +268,6 @@ docker compose exec netbox-db pg_dump -U netbox netbox > netbox_backup.sql
 
 ## Ejemplos de Compose Completos
 
-### Con Traefik
 
 ```yaml
 services:
@@ -318,16 +299,6 @@ services:
       - netbox-db
       - netbox-redis
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.netbox-http.rule=Host(`${DOMAIN_HOST}`)
-      - traefik.http.routers.netbox-http.entrypoints=web
-      - traefik.http.routers.netbox-http.middlewares=redirect-to-https
-      - traefik.http.routers.netbox.rule=Host(`${DOMAIN_HOST}`)
-      - traefik.http.routers.netbox.entrypoints=websecure
-      - traefik.http.routers.netbox.tls.certresolver=letsencrypt
-      - traefik.http.services.netbox.loadbalancer.server.port=8000
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
 
   netbox-db:
     container_name: netbox-db
@@ -365,10 +336,8 @@ networks:
     name: netbox-internal
 ```
 
-### Nginx Proxy Manager (NPM)
 
 **Requisitos**:
-- NPM desplegado y accesible
 - Red `proxy` creada
 - DNS apuntando al servidor
 
@@ -376,7 +345,6 @@ networks:
 
 1. Despliega el stack con el `compose.yaml` base (sin override)
 
-2. En NPM, crea un nuevo **Proxy Host**:
    - **Domain Names**: `netbox.tudominio.com`
    - **Scheme**: `http`
    - **Forward Hostname / IP**: `netbox`
@@ -721,7 +689,6 @@ docker exec netbox python /app/netbox/manage.py reindex --lazy
 | `DB_NAME` | Nombre de la base de datos | `netbox` |
 | `DB_USER` | Usuario de PostgreSQL | `netbox` |
 | `ALLOWED_HOST` | Hosts permitidos | `*` |
-| `DOMAIN_HOST` | Dominio (solo Traefik) | - |
 | `PUID` / `PGID` | UID/GID del usuario | `1000` |
 | `TZ` | Zona horaria | `Europe/Madrid` |
 
