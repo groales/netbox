@@ -19,7 +19,10 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
-      - netbox_config:/config
+      - ./config:/config
+    #Puertos expuestos para acceso directo (opcional, se recomienda usar proxy inverso)  
+    #ports:
+    #  - 8000:8000
     networks:
       - proxy
       - default
@@ -47,8 +50,6 @@ services:
       - /data:rw,noexec,nosuid,size=256m
 
 volumes:
-  netbox_config:
-    name: netbox_config
   netbox_db:
     name: netbox_db
 
