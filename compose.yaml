@@ -9,7 +9,8 @@ services:
       TZ: Europe/Madrid
       SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
       SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
-      ALLOWED_HOST: ${ALLOWED_HOST:-*}
+      ALLOWED_HOST: ${ALLOWED_HOST}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
       DB_NAME: ${DB_NAME:-netbox}
       DB_USER: ${DB_USER:-netbox}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -43,7 +44,7 @@ services:
 
   netbox-redis:
     container_name: netbox-redis
-    image: redis:7-alpine
+    image: redis:8.8-alpine
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD}
     tmpfs:
@@ -51,6 +52,7 @@ services:
 
 volumes:
   netbox_db:
+    external: true
     name: netbox_db
 
 networks:

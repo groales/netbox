@@ -89,7 +89,8 @@ services:
       TZ: Europe/Madrid
       SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
       SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
-      ALLOWED_HOST: ${ALLOWED_HOST:-*}
+      ALLOWED_HOST: ${ALLOWED_HOST}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
       DB_NAME: ${DB_NAME:-netbox}
       DB_USER: ${DB_USER:-netbox}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -99,7 +100,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
-      - netbox_config:/config
+      - ./config:/config
     networks:
       - proxy
       - default
@@ -120,16 +121,15 @@ services:
 
   netbox-redis:
     container_name: netbox-redis
-    image: redis:7-alpine
+    image: redis:8.8-alpine
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD}
     tmpfs:
       - /data:rw,noexec,nosuid,size=256m
 
 volumes:
-  netbox_config:
-    name: netbox_config
   netbox_db:
+    external: true
     name: netbox_db
 
 networks:
@@ -156,7 +156,8 @@ SUPERUSER_EMAIL=admin@example.com
 SUPERUSER_PASSWORD=tu_password_generado_3
 
 # Hosts permitidos (opcional)
-ALLOWED_HOST=*
+ALLOWED_HOST=netbox.example.com
+CSRF_TRUSTED_ORIGINS=https://netbox.example.com
 ```
 
 
@@ -178,6 +179,9 @@ DOMAIN_HOST=netbox.dominio.com
 # Crear red proxy si no existe
 docker network create proxy
 
+# Crear volumen externo de PostgreSQL si no existe
+docker volume create netbox_db
+
 # Iniciar servicios
 docker compose up -d
 
@@ -195,7 +199,7 @@ Si prefieres usar Git para mantener la configuración actualizada:
 
 ```bash
 # Clonar repositorio
-git clone https://git.ictiberia.com/groales/netbox.git
+git clone https://github.com/groales/netbox.git
 cd netbox
 
 # Copiar y editar variables
@@ -281,7 +285,8 @@ services:
       TZ: Europe/Madrid
       SUPERUSER_EMAIL: ${SUPERUSER_EMAIL}
       SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
-      ALLOWED_HOST: ${ALLOWED_HOST:-*}
+      ALLOWED_HOST: ${ALLOWED_HOST}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
       DB_NAME: ${DB_NAME:-netbox}
       DB_USER: ${DB_USER:-netbox}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -291,7 +296,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
-      - netbox_config:/config
+      - ./config:/config
     networks:
       - proxy
       - netbox-internal
@@ -315,7 +320,7 @@ services:
 
   netbox-redis:
     container_name: netbox-redis
-    image: redis:7-alpine
+    image: redis:8.8-alpine
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD}
     tmpfs:
@@ -324,9 +329,8 @@ services:
       - netbox-internal
 
 volumes:
-  netbox_config:
-    name: netbox_config
   netbox_db:
+    external: true
     name: netbox_db
 
 networks:
@@ -478,7 +482,7 @@ AUTH_LDAP_USER_SEARCH = LDAPSearch(
 docker exec netbox-db pg_dump -U netbox netbox > netbox-backup-$(date +%Y%m%d).sql
 
 # Backup de configuración
-docker run --rm -v netbox_config:/backup -v $(pwd):/target alpine tar czf /target/netbox-config-$(date +%Y%m%d).tar.gz -C /backup .
+tar czf netbox-config-$(date +%Y%m%d).tar.gz ./config
 
 # Redis usa tmpfs (no requiere backup - solo caché)
 ```
@@ -498,7 +502,7 @@ mkdir -p $BACKUP_DIR
 docker exec netbox-db pg_dump -U netbox netbox | gzip > $BACKUP_DIR/netbox-db-$DATE.sql.gz
 
 # Configuración
-docker run --rm -v netbox_config:/backup -v $BACKUP_DIR:/target alpine tar czf /target/netbox-config-$DATE.tar.gz -C /backup .
+tar czf $BACKUP_DIR/netbox-config-$DATE.tar.gz ./config
 
 # Limpiar backups antiguos (mantener 7 días)
 find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
@@ -527,7 +531,8 @@ docker stop netbox
 gunzip < netbox-db-20250101.sql.gz | docker exec -i netbox-db psql -U netbox netbox
 
 # Restaurar configuración
-docker run --rm -v netbox_config:/restore -v $(pwd):/source alpine tar xzf /source/netbox-config-20250101.tar.gz -C /restore
+mkdir -p ./config
+tar xzf netbox-config-20250101.tar.gz -C .
 
 # Iniciar NetBox
 docker start netbox
@@ -549,7 +554,7 @@ docker stop netbox netbox-redis netbox-db
 # 3. Actualizar imágenes
 docker pull lscr.io/linuxserver/netbox:latest
 docker pull postgres:18-alpine
-docker pull redis:7-alpine
+docker pull redis:8.8-alpine
 
 # 4. Iniciar stack
 docker start netbox-db netbox-redis netbox
@@ -627,7 +632,7 @@ docker restart netbox
 
 **Solución**:
 ```bash
-docker run --rm -v netbox_config:/data alpine chown -R 1000:1000 /data
+docker run --rm -v $(pwd)/config:/data alpine chown -R 1000:1000 /data
 docker restart netbox
 ```
 
@@ -688,7 +693,8 @@ docker exec netbox python /app/netbox/manage.py reindex --lazy
 |----------|-------------|-------------------|
 | `DB_NAME` | Nombre de la base de datos | `netbox` |
 | `DB_USER` | Usuario de PostgreSQL | `netbox` |
-| `ALLOWED_HOST` | Hosts permitidos | `*` |
+| `ALLOWED_HOST` | Host permitido para NetBox | `netbox.example.com` |
+| `CSRF_TRUSTED_ORIGINS` | Orígenes de confianza para CSRF (con esquema https://) | `https://netbox.example.com` |
 | `PUID` / `PGID` | UID/GID del usuario | `1000` |
 | `TZ` | Zona horaria | `Europe/Madrid` |
 
